@@ -236,24 +236,36 @@
       pulse: Math.random() * 0.03 + 0.01
     }));
 
-    function startExperience() {
+   // Forzar precarga del audio
+    window.addEventListener('DOMContentLoaded', () => {
+      bgMusic.load();
+    });
+
+    function startExperience(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       if (animationStage !== 'waiting') return;
-      startScreen.classList.add('hidden');
-      
-      // Reproduce sin reiniciar si ya estaba en curso
-      if (bgMusic.paused) {
-        bgMusic.play().catch(e => console.log("Audio play:", e));
+
+      // 1. Desbloquear y reproducir audio inmediatamente al toque
+      bgMusic.muted = false;
+      const playPromise = bgMusic.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          console.log("Error al reproducir audio:", err);
+          bgMusic.play().catch(() => {});
+        });
       }
 
+      // 2. Ocultar pantalla de bienvenida y arrancar
+      startScreen.classList.add('hidden');
       launchSequence();
     }
 
+    startScreen.addEventListener('touchstart', startExperience, { passive: false });
     startScreen.addEventListener('click', startExperience);
-    startScreen.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      startExperience();
-    });
-
+    
     function launchSequence() {
       animationStage = 'launch';
       messageBox.classList.remove('visible');
