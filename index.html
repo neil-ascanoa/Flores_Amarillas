@@ -14,7 +14,7 @@
     }
 
     body {
-      background-color: #030712;
+      background-color: #020408;
       min-height: 100vh;
       overflow: hidden;
       display: flex;
@@ -30,9 +30,9 @@
       max-width: 440px;
       height: 100vh;
       max-height: 900px;
-      background: radial-gradient(ellipse at 50% 30%, #1a1200 0%, #060814 60%, #02040a 100%);
+      background: radial-gradient(circle at 50% 40%, #151104 0%, #05070d 65%, #010206 100%);
       overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95);
     }
 
     canvas {
@@ -41,13 +41,13 @@
       display: block;
     }
 
-    /* Tarjeta con dedicatoria final */
+    /* Dedicatoria estética con fondo esmerilado */
     #message-box {
       position: absolute;
       bottom: 6%;
       left: 6%;
       right: 6%;
-      background: rgba(10, 15, 29, 0.82);
+      background: rgba(10, 15, 29, 0.85);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(253, 224, 71, 0.35);
@@ -59,7 +59,7 @@
       transition: all 1.8s cubic-bezier(0.16, 1, 0.3, 1);
       pointer-events: none;
       z-index: 20;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(250, 204, 21, 0.15);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 25px rgba(250, 204, 21, 0.15);
     }
 
     #message-box.visible {
@@ -70,7 +70,7 @@
 
     #message-box h2 {
       color: #fef08a;
-      font-size: 1.5rem;
+      font-size: 1.45rem;
       font-weight: 700;
       letter-spacing: 1.5px;
       text-shadow: 0 0 16px rgba(250, 204, 21, 0.6);
@@ -89,8 +89,8 @@
     #start-screen {
       position: absolute;
       inset: 0;
-      background: rgba(3, 7, 18, 0.88);
-      backdrop-filter: blur(8px);
+      background: rgba(2, 4, 8, 0.9);
+      backdrop-filter: blur(10px);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -105,7 +105,6 @@
       pointer-events: none;
     }
 
-    /* Botón nativo HTML para garantizar permisos de audio inmediatos */
     .start-btn {
       width: 84px;
       height: 84px;
@@ -138,7 +137,7 @@
       margin-top: 6px;
     }
 
-    /* Botones de control flotantes */
+    /* Botones de control */
     .controls {
       position: absolute;
       top: 16px;
@@ -190,7 +189,7 @@
       <button class="icon-btn" id="fullBtn" title="Pantalla completa">⛶</button>
     </div>
 
-    <!-- Pantalla interactiva -->
+    <!-- Pantalla interactiva previa -->
     <div id="start-screen">
       <button class="start-btn" id="realStartBtn">🌻</button>
       <h3>TOCA LA PANTALLA</h3>
@@ -199,7 +198,7 @@
 
     <canvas id="canvas"></canvas>
 
-    <!-- Mensaje dedicatoria -->
+    <!-- Dedicatoria final -->
     <div id="message-box">
       <h2>ERES ESPECIAL ✨🌻</h2>
       <p>
@@ -236,32 +235,41 @@
     let fireworkParticles = [];
     let sparkles = [];
 
-    // Partículas de fondo y bokeh
-    const stars = Array.from({ length: 42 }, () => ({
+    // Partículas ambientales de fondo
+    const stars = Array.from({ length: 45 }, () => ({
       x: Math.random() * 440,
       y: Math.random() * 900,
-      r: Math.random() * 2.2 + 0.8,
+      r: Math.random() * 2 + 0.8,
       alpha: Math.random() * 0.6 + 0.2,
       pulse: Math.random() * 0.03 + 0.01
     }));
 
-    // Precarga explícita del audio
+    // Cientos de partículas de polvo dorado sobre el ramo (como en la captura 1)
+    const goldClusterParticles = Array.from({ length: 180 }, () => {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.pow(Math.random(), 0.6) * 145;
+      return {
+        relX: Math.cos(angle) * radius,
+        relY: Math.sin(angle) * (radius * 0.75) - 60,
+        r: Math.random() * 2.8 + 1,
+        baseAlpha: Math.random() * 0.8 + 0.25,
+        speed: Math.random() * 0.04 + 0.02,
+        offset: Math.random() * Math.PI * 2
+      };
+    });
+
     window.addEventListener('DOMContentLoaded', () => {
       bgMusic.load();
     });
 
-    // Inicio con activación garantizada de audio en móviles
     function executeStart(e) {
-      if (e) {
-        e.stopPropagation();
-      }
+      if (e) e.stopPropagation();
       if (animationStage !== 'waiting') return;
 
       bgMusic.muted = false;
       const promise = bgMusic.play();
       if (promise !== undefined) {
         promise.catch(() => {
-          // Reintento en caso de delay en el navegador
           setTimeout(() => bgMusic.play().catch(() => {}), 100);
         });
       }
@@ -270,7 +278,6 @@
       launchSequence();
     }
 
-    // Vincular tanto el botón como el contenedor
     realStartBtn.addEventListener('click', executeStart);
     realStartBtn.addEventListener('touchend', executeStart);
     startScreen.addEventListener('click', executeStart);
@@ -283,7 +290,7 @@
       fireworkParticles = [];
       sparkles = [];
 
-      // Cohetes ascendentes
+      // Cohetes hacia el centro
       rockets.push({ x: width * 0.5, y: height, targetY: height * 0.42, speed: 13, trail: [] });
       rockets.push({ x: width * 0.44, y: height, targetY: height * 0.46, speed: 12.5, trail: [] });
       rockets.push({ x: width * 0.56, y: height, targetY: height * 0.45, speed: 12, trail: [] });
@@ -306,205 +313,254 @@
       animationStage = 'blooming';
     }
 
-    // Ramo orgánico con espiral de Fibonacci y sombreados volumétricos
-    function drawDetailedBouquet(cx, cy, scale, progress) {
+    /* ==========================================================
+       DIBUJO DEL RAMO EXACTO AL MODELO 1 (CAPAS + SEMILLAS + RESPLANDOR)
+       ========================================================== */
+    function drawModelOneSunflower(x, y, radius, petalLayers, isCenterBig) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      // Resplandor cálido exterior por flor
+      const aura = ctx.createRadialGradient(0, 0, radius * 0.4, 0, 0, radius * 1.35);
+      aura.addColorStop(0, 'rgba(250, 204, 21, 0.4)');
+      aura.addColorStop(1, 'rgba(250, 204, 21, 0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 1.35, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Múltiples capas de pétalos afilados definidos (idénticos a la foto 1)
+      const layers = petalLayers || [
+        { count: 28, length: radius, widthRatio: 0.16, color1: '#ca8a04', color2: '#fde047', rotOffset: 0 },
+        { count: 28, length: radius * 0.88, widthRatio: 0.15, color1: '#eab308', color2: '#fef08a', rotOffset: 0.11 },
+        { count: 24, length: radius * 0.74, widthRatio: 0.14, color1: '#f59e0b', color2: '#fffbeb', rotOffset: 0.22 }
+      ];
+
+      layers.forEach(layer => {
+        const step = (Math.PI * 2) / layer.count;
+        for (let i = 0; i < layer.count; i++) {
+          const angle = i * step + layer.rotOffset;
+          ctx.save();
+          ctx.rotate(angle);
+
+          const l = layer.length;
+          const w = l * layer.widthRatio;
+
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(-w, l * 0.45, 0, l);
+          ctx.quadraticCurveTo(w, l * 0.45, 0, 0);
+
+          const grad = ctx.createLinearGradient(0, 0, 0, l);
+          grad.addColorStop(0, layer.color1);
+          grad.addColorStop(0.7, layer.color2);
+          grad.addColorStop(1, '#ffffff');
+          ctx.fillStyle = grad;
+          ctx.fill();
+
+          // Nervadura central fina del pétalo
+          ctx.beginPath();
+          ctx.moveTo(0, l * 0.15);
+          ctx.lineTo(0, l * 0.85);
+          ctx.strokeStyle = 'rgba(202, 138, 4, 0.5)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.restore();
+        }
+      });
+
+      // Centro oscuro de semillas con corona de textura
+      const centerR = radius * (isCenterBig ? 0.38 : 0.35);
+
+      // Disco base
+      const centerGrad = ctx.createRadialGradient(0, 0, centerR * 0.1, 0, 0, centerR);
+      centerGrad.addColorStop(0, '#1c0d02');
+      centerGrad.addColorStop(0.65, '#381604');
+      centerGrad.addColorStop(0.9, '#5c2406');
+      centerGrad.addColorStop(1, '#853207');
+
+      ctx.beginPath();
+      ctx.arc(0, 0, centerR, 0, Math.PI * 2);
+      ctx.fillStyle = centerGrad;
+      ctx.fill();
+
+      // Semillas punteadas concéntricas / Fibonacci
+      const goldenAngle = 137.5 * (Math.PI / 180);
+      const totalSeeds = isCenterBig ? 130 : 90;
+      for (let n = 1; n < totalSeeds; n++) {
+        const r = (centerR - 2) * Math.sqrt(n / totalSeeds);
+        const theta = n * goldenAngle;
+        const sx = r * Math.cos(theta);
+        const sy = r * Math.sin(theta);
+
+        ctx.beginPath();
+        ctx.arc(sx, sy, isCenterBig ? 1.6 : 1.3, 0, Math.PI * 2);
+        ctx.fillStyle = n > totalSeeds * 0.65 ? '#ca8a04' : (n > totalSeeds * 0.3 ? '#854d0e' : '#291104');
+        ctx.fill();
+      }
+
+      // Anillo de brillo borde del centro
+      ctx.beginPath();
+      ctx.arc(0, 0, centerR, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(254, 240, 138, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawModelOneBouquet(cx, cy, scale, progress) {
       if (progress <= 0) return;
       ctx.save();
       ctx.translate(cx, cy);
       ctx.scale(scale * progress, scale * progress);
 
-      const sway = Math.sin(Date.now() * 0.0018) * 0.025;
+      // Leve respiración orgánica
+      const sway = Math.sin(Date.now() * 0.0018) * 0.02;
       ctx.rotate(sway);
 
-      // 1. Tallos
-      ctx.lineWidth = 5.5;
-      ctx.strokeStyle = '#14532d';
+      // 1. GRAN AURA DORADA DETRÁS DEL RAMO (como en la foto 1)
+      const bigAura = ctx.createRadialGradient(0, -40, 30, 0, -40, 260);
+      bigAura.addColorStop(0, 'rgba(250, 204, 21, 0.55)');
+      bigAura.addColorStop(0.5, 'rgba(234, 179, 8, 0.25)');
+      bigAura.addColorStop(1, 'rgba(234, 179, 8, 0)');
+      ctx.fillStyle = bigAura;
+      ctx.beginPath();
+      ctx.arc(0, -40, 260, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. TALLOS VERDES ESMERALDA DELGADOS Y ELEGANTES
+      ctx.lineWidth = 4.5;
+      ctx.strokeStyle = '#059669';
       ctx.lineCap = 'round';
-      for (let i = -6; i <= 6; i++) {
+      for (let i = -5; i <= 5; i++) {
         ctx.beginPath();
-        ctx.moveTo(i * 4, 30);
-        ctx.quadraticCurveTo(i * 6, 120, i * 7, 220);
+        ctx.moveTo(i * 3.5, 40);
+        ctx.quadraticCurveTo(i * 4.5, 120, i * 6.5, 210);
         ctx.stroke();
       }
 
-      // 2. Follaje de hojas
-      function drawLeaf(lx, ly, rot, s) {
+      // 3. HOJAS VERDES BRILLANTES TIPO LANCEOLADAS (Foto 1)
+      function drawCleanLeaf(lx, ly, rot, s) {
         ctx.save();
         ctx.translate(lx, ly);
         ctx.rotate(rot);
         ctx.scale(s, s);
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(35, -20, 60, 0);
-        ctx.quadraticCurveTo(35, 20, 0, 0);
-        const grad = ctx.createLinearGradient(0, -20, 60, 20);
-        grad.addColorStop(0, '#15803d');
-        grad.addColorStop(1, '#14532d');
+        ctx.quadraticCurveTo(28, -18, 55, 0);
+        ctx.quadraticCurveTo(28, 18, 0, 0);
+        const grad = ctx.createLinearGradient(0, -18, 55, 18);
+        grad.addColorStop(0, '#34d399');
+        grad.addColorStop(0.5, '#10b981');
+        grad.addColorStop(1, '#065f46');
         ctx.fillStyle = grad;
         ctx.fill();
         ctx.restore();
       }
 
-      drawLeaf(-70, 20, -0.6, 1.15);
-      drawLeaf(70, 20, 0.6, 1.15);
-      drawLeaf(-95, -40, -0.9, 1);
-      drawLeaf(95, -40, 0.9, 1);
-      drawLeaf(0, -95, -1.57, 1.25);
+      drawCleanLeaf(-75, -20, -0.65, 1.25);
+      drawCleanLeaf(75, -20, 0.65, 1.25);
+      drawCleanLeaf(-105, -70, -1.05, 1.15);
+      drawCleanLeaf(105, -70, 1.05, 1.15);
+      drawCleanLeaf(0, -120, -1.57, 1.3);
 
-      // 3. Flores silvestres amarillas
-      function drawWildClusters(ox, oy) {
-        ctx.save();
-        ctx.translate(ox, oy);
-        for (let j = 0; j < 18; j++) {
-          const px = (Math.sin(j * 3.7) * 35);
-          const py = (Math.cos(j * 2.3) * 35);
-          ctx.beginPath();
-          ctx.arc(px, py, (j % 3) + 2.5, 0, Math.PI * 2);
-          ctx.fillStyle = '#fde047';
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-      drawWildClusters(-90, -60);
-      drawWildClusters(90, -60);
-      drawWildClusters(0, -110);
-
-      // 4. Rosas concéntricas aterciopeladas
-      function drawRose(rx, ry, rScale) {
+      // 4. ROSAS CONCÉNTRICAS AMARILLAS DULCES DE FONDO (Foto 1)
+      function drawBackRose(rx, ry, r) {
         ctx.save();
         ctx.translate(rx, ry);
-        ctx.scale(rScale, rScale);
         for (let ring = 5; ring >= 1; ring--) {
-          const r = ring * 8;
-          const petals = ring * 3;
-          for (let p = 0; p < petals; p++) {
-            const angle = (p / petals) * Math.PI * 2 + ring;
-            const px = Math.cos(angle) * (r * 0.7);
-            const py = Math.sin(angle) * (r * 0.7);
-            ctx.beginPath();
-            ctx.arc(px, py, r * 0.65, 0, Math.PI * 2);
-            ctx.fillStyle = ring === 1 ? '#eab308' : (ring % 2 === 0 ? '#facc15' : '#fef08a');
-            ctx.shadowColor = 'rgba(180, 83, 9, 0.35)';
-            ctx.shadowBlur = 8;
-            ctx.fill();
-            ctx.shadowBlur = 0;
-          }
-        }
-        ctx.restore();
-      }
-
-      drawRose(-70, -20, 0.9);
-      drawRose(70, -20, 0.9);
-      drawRose(-40, -80, 0.75);
-      drawRose(40, -80, 0.75);
-
-      // 5. Girasoles con espiral áurea de Fibonacci
-      function drawSunflower(sx, sy, size) {
-        ctx.save();
-        ctx.translate(sx, sy);
-        
-        const totalPetals = 22;
-        // Capa trasera
-        for (let i = 0; i < totalPetals; i++) {
-          ctx.save();
-          ctx.rotate((i * Math.PI * 2) / totalPetals);
+          const rad = (ring / 5) * r;
           ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.quadraticCurveTo(-15, size * 0.5, 0, size);
-          ctx.quadraticCurveTo(15, size * 0.5, 0, 0);
-          const pGrad = ctx.createLinearGradient(0, 0, 0, size);
-          pGrad.addColorStop(0, '#f59e0b');
-          pGrad.addColorStop(0.7, '#facc15');
-          pGrad.addColorStop(1, '#fef08a');
-          ctx.fillStyle = pGrad;
-          ctx.shadowColor = 'rgba(217, 119, 6, 0.4)';
-          ctx.shadowBlur = 10;
+          ctx.arc(0, 0, rad, 0, Math.PI * 2);
+          ctx.fillStyle = ring % 2 === 0 ? '#facc15' : '#eab308';
+          ctx.shadowColor = 'rgba(202, 138, 4, 0.4)';
+          ctx.shadowBlur = 6;
           ctx.fill();
           ctx.shadowBlur = 0;
-          ctx.restore();
-        }
-
-        // Capa delantera
-        for (let i = 0; i < totalPetals; i++) {
-          ctx.save();
-          ctx.rotate(((i + 0.5) * Math.PI * 2) / totalPetals);
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.quadraticCurveTo(-12, size * 0.45, 0, size * 0.88);
-          ctx.quadraticCurveTo(12, size * 0.45, 0, 0);
-          const pGrad2 = ctx.createLinearGradient(0, 0, 0, size * 0.88);
-          pGrad2.addColorStop(0, '#d97706');
-          pGrad2.addColorStop(0.8, '#fde047');
-          ctx.fillStyle = pGrad2;
-          ctx.fill();
-          ctx.restore();
-        }
-
-        // Núcleo Fibonacci
-        const centerR = size * 0.38;
-        ctx.beginPath();
-        ctx.arc(0, 0, centerR, 0, Math.PI * 2);
-        ctx.fillStyle = '#451a03';
-        ctx.fill();
-
-        const goldenAngle = 137.5 * (Math.PI / 180);
-        for (let n = 1; n < 140; n++) {
-          const r = (centerR - 3) * Math.sqrt(n / 140);
-          const theta = n * goldenAngle;
-          const fx = r * Math.cos(theta);
-          const fy = r * Math.sin(theta);
-          ctx.beginPath();
-          ctx.arc(fx, fy, 1.8, 0, Math.PI * 2);
-          ctx.fillStyle = n > 90 ? '#78350f' : (n > 40 ? '#b45309' : '#ca8a04');
-          ctx.fill();
         }
         ctx.restore();
       }
 
-      drawSunflower(0, -10, 85);
-      drawSunflower(-75, 45, 55);
-      drawSunflower(75, 45, 55);
+      drawBackRose(0, -95, 48);
+      drawBackRose(-55, -75, 44);
+      drawBackRose(55, -75, 44);
 
-      // 6. Lazo de satén oscuro con borde dorado
+      // 5. GIRASOLES SUPERIORES Y LATERALES (Foto 1)
+      drawModelOneSunflower(-68, -25, 62, null, false);
+      drawModelOneSunflower(68, -25, 62, null, false);
+      drawModelOneSunflower(0, -85, 54, null, false);
+
+      // 6. GRAN GIRASOL CENTRAL DOMINANTE (Foto 1)
+      drawModelOneSunflower(0, 5, 88, null, true);
+
+      // 7. LAZO NEGRO DE SATÉN CON FILO DORADO Y CAÍDAS FINAS (Foto 1)
       ctx.save();
-      ctx.translate(0, 95);
-      ctx.lineWidth = 14;
-      ctx.strokeStyle = '#0f172a';
+      ctx.translate(0, 85);
+
+      // Lazadas
+      ctx.lineWidth = 11;
+      ctx.strokeStyle = '#05070d';
       ctx.beginPath();
-      ctx.ellipse(-32, -6, 26, 14, -0.3, 0, Math.PI * 2);
-      ctx.ellipse(32, -6, 26, 14, 0.3, 0, Math.PI * 2);
+      ctx.ellipse(-30, -5, 25, 13, -0.28, 0, Math.PI * 2);
+      ctx.ellipse(30, -5, 25, 13, 0.28, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.lineWidth = 2;
+      // Borde dorado en las lazadas
+      ctx.lineWidth = 2.2;
       ctx.strokeStyle = '#facc15';
       ctx.stroke();
 
+      // Nudo ovalado
       ctx.beginPath();
-      ctx.arc(0, 0, 11, 0, Math.PI * 2);
-      ctx.fillStyle = '#020617';
+      ctx.ellipse(0, 0, 13, 10, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#05070d';
       ctx.fill();
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.2;
       ctx.strokeStyle = '#fef08a';
       ctx.stroke();
 
-      ctx.lineWidth = 10;
-      ctx.strokeStyle = '#0f172a';
+      // Caídas largas estilizadas
+      ctx.lineWidth = 9;
+      ctx.strokeStyle = '#05070d';
       ctx.beginPath();
-      ctx.moveTo(-6, 8);
-      ctx.quadraticCurveTo(-25, 60, -35, 95);
-      ctx.moveTo(6, 8);
-      ctx.quadraticCurveTo(25, 60, 35, 95);
+      ctx.moveTo(-5, 8);
+      ctx.quadraticCurveTo(-22, 60, -30, 98);
+      ctx.moveTo(5, 8);
+      ctx.quadraticCurveTo(22, 60, 30, 98);
       ctx.stroke();
+
+      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = '#facc15';
+      ctx.stroke();
+
       ctx.restore();
+
+      // 8. CIENTOS DE CHISPAS Y POLVO DORADO SOBRE EL RAMO (Efecto Foto 1)
+      const t = Date.now() * 0.002;
+      goldClusterParticles.forEach(p => {
+        const py = p.relY + Math.sin(t + p.offset) * 6;
+        const px = p.relX + Math.cos(t + p.offset) * 4;
+        const currentAlpha = p.baseAlpha * (0.6 + 0.4 * Math.sin(t * 2 + p.offset));
+
+        ctx.beginPath();
+        ctx.arc(px, py, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(254, 240, 138, ${currentAlpha})`;
+        ctx.shadowColor = '#facc15';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
 
       ctx.restore();
     }
 
-    // Bucle continuo de renderizado
+    // Bucle continuo
     function loop() {
       ctx.clearRect(0, 0, width, height);
 
-      // Estrellas ambientales
+      // 1. Estrellas de fondo
       stars.forEach(s => {
         s.alpha += s.pulse;
         if (s.alpha > 0.8 || s.alpha < 0.2) s.pulse *= -1;
@@ -514,7 +570,7 @@
         ctx.fill();
       });
 
-      // Cohetes
+      // 2. Cohetes
       if (animationStage === 'launch') {
         rockets.forEach(r => {
           r.trail.push({ x: r.x, y: r.y, alpha: 1 });
@@ -544,7 +600,7 @@
         });
       }
 
-      // Fuegos artificiales detonados
+      // 3. Chispas de la detonación
       if (fireworkParticles.length > 0) {
         fireworkParticles.forEach(p => {
           p.x += p.vx;
@@ -565,7 +621,7 @@
         fireworkParticles = fireworkParticles.filter(p => p.alpha > 0);
       }
 
-      // Ramo floreciendo
+      // 4. Ramo floreciendo y resplandeciendo
       if (animationStage === 'blooming' || animationStage === 'steady') {
         if (bouquetProgress < 1) {
           bouquetProgress += 0.02;
@@ -575,10 +631,10 @@
             messageBox.classList.add('visible');
           }
         }
-        drawDetailedBouquet(width * 0.5, height * 0.45, 1.1, bouquetProgress);
+        drawModelOneBouquet(width * 0.5, height * 0.44, 1.12, bouquetProgress);
       }
 
-      // Chispas al tocar la pantalla
+      // 5. Destellos mágicos al tocar
       sparkles.forEach(sp => {
         sp.x += sp.vx;
         sp.y += sp.vy;
@@ -597,7 +653,6 @@
     }
     loop();
 
-    // Efecto de chispas táctiles
     function addTouchSparkles(e) {
       const rect = canvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -621,7 +676,7 @@
     canvas.addEventListener('click', addTouchSparkles);
     canvas.addEventListener('touchstart', addTouchSparkles);
 
-    // Controles superiores
+    // Controles
     soundBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       isMuted = !isMuted;
@@ -629,7 +684,7 @@
       soundBtn.textContent = isMuted ? '🔇' : '🔊';
     });
 
-    // Replay: la música continúa sin reiniciarse
+    // Al reiniciar, la música no se corta
     replayBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (bgMusic.paused) {
