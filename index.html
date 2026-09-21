@@ -23,7 +23,7 @@
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
 
-    /* Proporción 9:16 para historias y estados */
+    /* Proporción 9:16 vertical para historias y estados */
     #canvas-container {
       position: relative;
       width: 100vw;
@@ -41,7 +41,7 @@
       display: block;
     }
 
-    /* Tarjeta con dedicatoria */
+    /* Tarjeta con dedicatoria final */
     #message-box {
       position: absolute;
       bottom: 6%;
@@ -89,7 +89,7 @@
     #start-screen {
       position: absolute;
       inset: 0;
-      background: rgba(3, 7, 18, 0.85);
+      background: rgba(3, 7, 18, 0.88);
       backdrop-filter: blur(8px);
       display: flex;
       flex-direction: column;
@@ -105,18 +105,23 @@
       pointer-events: none;
     }
 
+    /* Botón nativo HTML para garantizar permisos de audio inmediatos */
     .start-btn {
-      width: 82px;
-      height: 82px;
+      width: 84px;
+      height: 84px;
       border-radius: 50%;
+      border: none;
+      outline: none;
       background: radial-gradient(circle, #fde047 0%, #ca8a04 100%);
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 2.2rem;
+      font-size: 2.3rem;
       box-shadow: 0 0 35px rgba(250, 204, 21, 0.65);
       animation: pulse 1.8s infinite ease-in-out;
       margin-bottom: 22px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
     #start-screen h3 {
@@ -133,7 +138,7 @@
       margin-top: 6px;
     }
 
-    /* Botones de control */
+    /* Botones de control flotantes */
     .controls {
       position: absolute;
       top: 16px;
@@ -174,6 +179,7 @@
 
   <div id="canvas-container">
     
+    <!-- Audio de fondo -->
     <audio id="bgMusic" loop preload="auto">
       <source src="cancion.mp3" type="audio/mpeg">
     </audio>
@@ -184,14 +190,16 @@
       <button class="icon-btn" id="fullBtn" title="Pantalla completa">⛶</button>
     </div>
 
+    <!-- Pantalla interactiva -->
     <div id="start-screen">
-      <div class="start-btn">🌻</div>
+      <button class="start-btn" id="realStartBtn">🌻</button>
       <h3>TOCA LA PANTALLA</h3>
       <p>Sube el volumen para una mejor experiencia</p>
     </div>
 
     <canvas id="canvas"></canvas>
 
+    <!-- Mensaje dedicatoria -->
     <div id="message-box">
       <h2>ERES ESPECIAL ✨🌻</h2>
       <p>
@@ -205,6 +213,7 @@
     const ctx = canvas.getContext('2d');
     const container = document.getElementById('canvas-container');
     const startScreen = document.getElementById('start-screen');
+    const realStartBtn = document.getElementById('realStartBtn');
     const messageBox = document.getElementById('message-box');
     const bgMusic = document.getElementById('bgMusic');
     const soundBtn = document.getElementById('soundBtn');
@@ -227,7 +236,7 @@
     let fireworkParticles = [];
     let sparkles = [];
 
-    // Partículas ambientales y bokeh
+    // Partículas de fondo y bokeh
     const stars = Array.from({ length: 42 }, () => ({
       x: Math.random() * 440,
       y: Math.random() * 900,
@@ -236,36 +245,36 @@
       pulse: Math.random() * 0.03 + 0.01
     }));
 
-   // Forzar precarga del audio
+    // Precarga explícita del audio
     window.addEventListener('DOMContentLoaded', () => {
       bgMusic.load();
     });
 
-    function startExperience(e) {
+    // Inicio con activación garantizada de audio en móviles
+    function executeStart(e) {
       if (e) {
-        e.preventDefault();
         e.stopPropagation();
       }
       if (animationStage !== 'waiting') return;
 
-      // 1. Desbloquear y reproducir audio inmediatamente al toque
       bgMusic.muted = false;
-      const playPromise = bgMusic.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          console.log("Error al reproducir audio:", err);
-          bgMusic.play().catch(() => {});
+      const promise = bgMusic.play();
+      if (promise !== undefined) {
+        promise.catch(() => {
+          // Reintento en caso de delay en el navegador
+          setTimeout(() => bgMusic.play().catch(() => {}), 100);
         });
       }
 
-      // 2. Ocultar pantalla de bienvenida y arrancar
       startScreen.classList.add('hidden');
       launchSequence();
     }
 
-    startScreen.addEventListener('touchstart', startExperience, { passive: false });
-    startScreen.addEventListener('click', startExperience);
-    
+    // Vincular tanto el botón como el contenedor
+    realStartBtn.addEventListener('click', executeStart);
+    realStartBtn.addEventListener('touchend', executeStart);
+    startScreen.addEventListener('click', executeStart);
+
     function launchSequence() {
       animationStage = 'launch';
       messageBox.classList.remove('visible');
@@ -297,7 +306,7 @@
       animationStage = 'blooming';
     }
 
-    // Dibujo del ramo original con detalles orgánicos y Fibonacci
+    // Ramo orgánico con espiral de Fibonacci y sombreados volumétricos
     function drawDetailedBouquet(cx, cy, scale, progress) {
       if (progress <= 0) return;
       ctx.save();
@@ -342,7 +351,7 @@
       drawLeaf(95, -40, 0.9, 1);
       drawLeaf(0, -95, -1.57, 1.25);
 
-      // 3. Flores silvestres amarillas (perlas)
+      // 3. Flores silvestres amarillas
       function drawWildClusters(ox, oy) {
         ctx.save();
         ctx.translate(ox, oy);
@@ -378,6 +387,7 @@
             ctx.shadowColor = 'rgba(180, 83, 9, 0.35)';
             ctx.shadowBlur = 8;
             ctx.fill();
+            ctx.shadowBlur = 0;
           }
         }
         ctx.restore();
@@ -410,6 +420,7 @@
           ctx.shadowColor = 'rgba(217, 119, 6, 0.4)';
           ctx.shadowBlur = 10;
           ctx.fill();
+          ctx.shadowBlur = 0;
           ctx.restore();
         }
 
@@ -489,11 +500,11 @@
       ctx.restore();
     }
 
-    // Bucle de renderizado
+    // Bucle continuo de renderizado
     function loop() {
       ctx.clearRect(0, 0, width, height);
 
-      // Estrellas
+      // Estrellas ambientales
       stars.forEach(s => {
         s.alpha += s.pulse;
         if (s.alpha > 0.8 || s.alpha < 0.2) s.pulse *= -1;
@@ -533,7 +544,7 @@
         });
       }
 
-      // Fuegos artificiales
+      // Fuegos artificiales detonados
       if (fireworkParticles.length > 0) {
         fireworkParticles.forEach(p => {
           p.x += p.vx;
@@ -567,7 +578,7 @@
         drawDetailedBouquet(width * 0.5, height * 0.45, 1.1, bouquetProgress);
       }
 
-      // Chispas al tocar
+      // Chispas al tocar la pantalla
       sparkles.forEach(sp => {
         sp.x += sp.vx;
         sp.y += sp.vy;
@@ -586,7 +597,7 @@
     }
     loop();
 
-    // Toques en pantalla interactivos
+    // Efecto de chispas táctiles
     function addTouchSparkles(e) {
       const rect = canvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -610,7 +621,7 @@
     canvas.addEventListener('click', addTouchSparkles);
     canvas.addEventListener('touchstart', addTouchSparkles);
 
-    // Controles
+    // Controles superiores
     soundBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       isMuted = !isMuted;
@@ -618,7 +629,7 @@
       soundBtn.textContent = isMuted ? '🔇' : '🔊';
     });
 
-    // 👉 Al reiniciar, la música SIGUE sin cortarse ni reiniciarse
+    // Replay: la música continúa sin reiniciarse
     replayBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (bgMusic.paused) {
@@ -636,7 +647,5 @@
       }
     });
   </script>
-</body>
-</html>
 </body>
 </html>
