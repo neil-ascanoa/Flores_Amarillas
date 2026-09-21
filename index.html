@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Para ti ✨🌻</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: #030712;
+      min-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    /* Contenedor vertical 9:16 para estado */
+    #canvas-container {
+      position: relative;
+      width: 100vw;
+      max-width: 440px;
+      height: 100vh;
+      max-height: 900px;
+      background: radial-gradient(ellipse at 50% 30%, #171100 0%, #060814 60%, #02040a 100%);
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Mensaje final elegante */
+    #message-box {
+      position: absolute;
+      bottom: 6%;
+      left: 6%;
+      right: 6%;
+      background: rgba(10, 15, 29, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(253, 224, 71, 0.3);
+      border-radius: 20px;
+      padding: 20px 18px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(30px) scale(0.96);
+      transition: all 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      z-index: 20;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(250, 204, 21, 0.15);
+    }
+
+    #message-box.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    #message-box h2 {
+      color: #fef08a;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-shadow: 0 0 16px rgba(250, 204, 21, 0.6);
+      margin-bottom: 8px;
+    }
+
+    #message-box p {
+      color: #f1f5f9;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      font-weight: 300;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Pantalla inicial "Tocar para comenzar" */
+    #start-screen {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+      cursor: pointer;
+      transition: opacity 0.8s ease;
+    }
+
+    #start-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .start-btn {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fde047 0%, #ca8a04 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2.2rem;
+      box-shadow: 0 0 35px rgba(250, 204, 21, 0.65);
+      animation: pulse 1.8s infinite ease-in-out;
+      margin-bottom: 22px;
+    }
+
+    #start-screen h3 {
+      color: #fef08a;
+      font-size: 1.25rem;
+      letter-spacing: 2px;
+      font-weight: 600;
+      text-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
+    }
+
+    #start-screen p {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      margin-top: 6px;
+    }
+
+    /* Controles superiores */
+    .controls {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 10px;
+      z-index: 30;
+    }
+
+    .icon-btn {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(254, 240, 138, 0.3);
+      color: #fef08a;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      backdrop-filter: blur(8px);
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .icon-btn:hover {
+      transform: scale(1.1);
+      background: rgba(30, 41, 59, 0.85);
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(250, 204, 21, 0.5); }
+      50% { transform: scale(1.1); box-shadow: 0 0 45px rgba(250, 204, 21, 0.85); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Contenedor 9:16 -->
+  <div id="canvas-container">
+    
+    <!-- AUDIO: Asegúrate de guardar tu archivo como cancion.mp3 en la misma carpeta -->
+    <audio id="bgMusic" loop preload="auto">
+      <source src="cancion.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="controls">
+      <button class="icon-btn" id="soundBtn" title="Silenciar / Activar audio">🔊</button>
+      <button class="icon-btn" id="replayBtn" title="Reiniciar">↻</button>
+      <button class="icon-btn" id="fullBtn" title="Pantalla completa">⛶</button>
+    </div>
+
+    <!-- Pantalla interactiva previa requerida por navegadores -->
+    <div id="start-screen">
+      <div class="start-btn">🌻</div>
+      <h3>TOCA LA PANTALLA</h3>
+      <p>Sube el volumen para una mejor experiencia</p>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <!-- Dedicatoria final -->
+    <div id="message-box">
+      <h2>ERES ESPECIAL ✨🌻</h2>
+      <p>
+        Para todas aquellas personas que no recibieron sus flores, déjenme decirles que son increíbles y que disfruten mucho este día.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+    const startScreen = document.getElementById('start-screen');
+    const messageBox = document.getElementById('message-box');
+    const bgMusic = document.getElementById('bgMusic');
+    const soundBtn = document.getElementById('soundBtn');
+    const replayBtn = document.getElementById('replayBtn');
+    const fullBtn = document.getElementById('fullBtn');
+
+    let width, height;
+    function resize() {
+      width = canvas.width = container.clientWidth;
+      height = canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Estado general
+    let animationStage = 'waiting'; // waiting, launch, blooming, steady
+    let stageTimer = 0;
+    let bouquetProgress = 0;
+    let isMuted = false;
+
+    // Arreglos de partículas
+    let rockets = [];
+    let fireworkParticles = [];
+    let sparkles = [];
+
+    // Partículas de fondo (bokeh y polvo de estrellas)
+    const stars = Array.from({ length: 40 }, () => ({
+      x: Math.random() * 440,
+      y: Math.random() * 900,
+      r: Math.random() * 2 + 0.8,
+      alpha: Math.random() * 0.6 + 0.2,
+      pulse: Math.random() * 0.03 + 0.01
+    }));
+
+    // Iniciar experiencia
+    function startExperience() {
+      if (animationStage !== 'waiting') return;
+      startScreen.classList.add('hidden');
+      
+      // Intentar reproducir audio
+      bgMusic.play().catch(e => {
+        console.log("Auto-play prevenido o esperando interacción:", e);
+      });
+
+      launchSequence();
+    }
+
+    startScreen.addEventListener('click', startExperience);
+    startScreen.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      startExperience();
+    });
+
+    function launchSequence() {
+      animationStage = 'launch';
+      messageBox.classList.remove('visible');
+      bouquetProgress = 0;
+      rockets = [];
+      fireworkParticles = [];
+      sparkles = [];
+
+      // Lanzar 3 cohetes centrales
+      rockets.push({
+        x: width * 0.5,
+        y: height,
+        targetY: height * 0.42,
+        speed: 13,
+        trail: []
+      });
+      rockets.push({
+        x: width * 0.44,
+        y: height,
+        targetY: height * 0.46,
+        speed: 12.5,
+        trail: []
+      });
+      rockets.push({
+        x: width * 0.56,
+        y: height,
+        targetY: height * 0.45,
+        speed: 12,
+        trail: []
+      });
+    }
+
+    // Explosión de fuegos artificiales hacia ramo
+    function explodeRockets(x, y) {
+      for (let i = 0; i < 160; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 7 + 2;
+        fireworkParticles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color: Math.random() > 0.3 ? '#facc15' : (Math.random() > 0.5 ? '#fef08a' : '#fbbf24'),
+          alpha: 1,
+          size: Math.random() * 3 + 1.5,
+          life: 1
+        });
+      }
+      animationStage = 'blooming';
+      stageTimer = 0;
+    }
+
+    // Dibujo botánico del ramo
+    function drawDetailedBouquet(cx, cy, scale, progress) {
+      if (progress <= 0) return;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale * progress, scale * progress);
+
+      // Micro balanceo orgánico
+      const sway = Math.sin(Date.now() * 0.0018) * 0.025;
+      ctx.rotate(sway);
+
+      // 1. Tallos verdes
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#166534';
+      ctx.lineCap = 'round';
+      for (let i = -6; i <= 6; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 4, 30);
+        ctx.quadraticCurveTo(i * 6, 120, i * 7, 230);
+        ctx.stroke();
+      }
+
+      // 2. Follaje de hojas y ramas de eucalipto
+      function drawLeaf(lx, ly, rot, s) {
+        ctx.save();
+        ctx.translate(lx, ly);
+        ctx.rotate(rot);
+        ctx.scale(s, s);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(35, -20, 60, 0);
+        ctx.quadraticCurveTo(35, 20, 0, 0);
+        const grad = ctx.createLinearGradient(0, -20, 60, 20);
+        grad.addColorStop(0, '#15803d');
+        grad.addColorStop(1, '#166534');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      drawLeaf(-60, 20, -0.6, 1.1);
+      drawLeaf(60, 20, 0.6, 1.1);
+      drawLeaf(-90, -40, -0.9, 1);
+      drawLeaf(90, -40, 0.9, 1);
+      drawLeaf(0, -90, -1.57, 1.2);
+
+      // 3. Ramilletes de flores pequeñas amarillas (Solidago / perlas doradas)
+      function drawWildClusters(ox, oy) {
+        ctx.save();
+        ctx.translate(ox, oy);
+        for (let j = 0; j < 18; j++) {
+          const px = (Math.random() - 0.5) * 60;
+          const py = (Math.random() - 0.5) * 60;
+          ctx.beginPath();
+          ctx.arc(px, py, Math.random() * 3 + 2, 0, Math.PI * 2);
+          ctx.fillStyle = '#fde047';
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+      drawWildClusters(-90, -60);
+      drawWildClusters(90, -60);
+      drawWildClusters(0, -110);
+
+      // 4. Rosas amarillas aterciopeladas
+      function drawRose(rx, ry, rScale) {
+        ctx.save();
+        ctx.translate(rx, ry);
+        ctx.scale(rScale, rScale);
+        for (let ring = 5; ring >= 1; ring--) {
+          const r = ring * 8;
+          const petals = ring * 3;
+          for (let p = 0; p < petals; p++) {
+            const angle = (p / petals) * Math.PI * 2 + ring;
+            const px = Math.cos(angle) * (r * 0.7);
+            const py = Math.sin(angle) * (r * 0.7);
+            ctx.beginPath();
+            ctx.arc(px, py, r * 0.65, 0, Math.PI * 2);
+            ctx.fillStyle = ring === 1 ? '#eab308' : (ring % 2 === 0 ? '#facc15' : '#fef08a');
+            ctx.shadowColor = 'rgba(180, 83, 9, 0.35)';
+            ctx.shadowBlur = 8;
+            ctx.fill();
+          }
+        }
+        ctx.restore();
+      }
+
+      drawRose(-70, -20, 0.9);
+      drawRose(70, -20, 0.9);
+      drawRose(-40, -80, 0.75);
+      drawRose(40, -80, 0.75);
+
+      // 5. Girasol central imponente (con espiral de Fibonacci en el centro)
+      function drawSunflower(sx, sy, size) {
+        ctx.save();
+        ctx.translate(sx, sy);
+        
+        // Pétalos capa trasera
+        const totalPetals = 22;
+        for (let i = 0; i < totalPetals; i++) {
+          ctx.save();
+          ctx.rotate((i * Math.PI * 2) / totalPetals);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(-15, size * 0.5, 0, size);
+          ctx.quadraticCurveTo(15, size * 0.5, 0, 0);
+          const pGrad = ctx.createLinearGradient(0, 0, 0, size);
+          pGrad.addColorStop(0, '#f59e0b');
+          pGrad.addColorStop(0.7, '#facc15');
+          pGrad.addColorStop(1, '#fef08a');
+          ctx.fillStyle = pGrad;
+          ctx.shadowColor = 'rgba(217, 119, 6, 0.4)';
+          ctx.shadowBlur = 10;
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Pétalos capa delantera intercalada
+        for (let i = 0; i < totalPetals; i++) {
+          ctx.save();
+          ctx.rotate(((i + 0.5) * Math.PI * 2) / totalPetals);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(-12, size * 0.45, 0, size * 0.88);
+          ctx.quadraticCurveTo(12, size * 0.45, 0, 0);
+          const pGrad2 = ctx.createLinearGradient(0, 0, 0, size * 0.88);
+          pGrad2.addColorStop(0, '#d97706');
+          pGrad2.addColorStop(0.8, '#fde047');
+          ctx.fillStyle = pGrad2;
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Centro con espiral de Fibonacci (Ángulo áureo 137.5°)
+        const centerR = size * 0.38;
+        ctx.beginPath();
+        ctx.arc(0, 0, centerR, 0, Math.PI * 2);
+        ctx.fillStyle = '#451a03';
+        ctx.fill();
+
+        const goldenAngle = 137.5 * (Math.PI / 180);
+        for (let n = 1; n < 140; n++) {
+          const r = (centerR - 3) * Math.sqrt(n / 140);
+          const theta = n * goldenAngle;
+          const fx = r * Math.cos(theta);
+          const fy = r * Math.sin(theta);
+          ctx.beginPath();
+          ctx.arc(fx, fy, 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = n > 90 ? '#78350f' : (n > 40 ? '#b45309' : '#ca8a04');
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      drawSunflower(0, -10, 85);
+      drawSunflower(-75, 45, 55);
+      drawSunflower(75, 45, 55);
+
+      // 6. Lazo de satén negro con dorado cosido
+      ctx.save();
+      ctx.translate(0, 95);
+      
+      // Lazadas
+      ctx.lineWidth = 14;
+      ctx.strokeStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.ellipse(-32, -6, 26, 14, -0.3, 0, Math.PI * 2);
+      ctx.ellipse(32, -6, 26, 14, 0.3, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Detalle dorado en los bordes del lazo
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#facc15';
+      ctx.stroke();
+
+      // Nudo central
+      ctx.beginPath();
+      ctx.arc(0, 0, 11, 0, Math.PI * 2);
+      ctx.fillStyle = '#020617';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#fef08a';
+      ctx.stroke();
+
+      // Caídas del lazo
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.moveTo(-6, 8);
+      ctx.quadraticCurveTo(-25, 60, -35, 95);
+      ctx.moveTo(6, 8);
+      ctx.quadraticCurveTo(25, 60, 35, 95);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.restore();
+    }
+
+    // Bucle principal de animación
+    function loop() {
+      ctx.clearRect(0, 0, width, height);
+
+      // 1. Estrellas y polvo de luz ambiental
+      stars.forEach(s => {
+        s.alpha += s.pulse;
+        if (s.alpha > 0.8 || s.alpha < 0.2) s.pulse *= -1;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(254, 240, 138, ${s.alpha})`;
+        ctx.fill();
+      });
+
+      // 2. Cohetes subiendo
+      if (animationStage === 'launch') {
+        rockets.forEach(r => {
+          r.trail.push({ x: r.x, y: r.y, alpha: 1 });
+          r.y -= r.speed;
+
+          // Dibujar estela de chispas
+          r.trail.forEach(t => {
+            t.alpha -= 0.05;
+            ctx.beginPath();
+            ctx.arc(t.x + (Math.random() - 0.5) * 4, t.y, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(250, 204, 21, ${t.alpha})`;
+            ctx.fill();
+          });
+          r.trail = r.trail.filter(t => t.alpha > 0);
+
+          // Cabeza del cohete
+          ctx.beginPath();
+          ctx.arc(r.x, r.y, 4, 0, Math.PI * 2);
+          ctx.fillStyle = '#fff';
+          ctx.shadowColor = '#facc15';
+          ctx.shadowBlur = 15;
+          ctx.fill();
+
+          if (r.y <= r.targetY) {
+            explodeRockets(width * 0.5, height * 0.44);
+            rockets = [];
+          }
+        });
+      }
+
+      // 3. Chispas de la detonación
+      if (fireworkParticles.length > 0) {
+        fireworkParticles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.08; // Gravedad
+          p.alpha -= 0.016;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 8;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        });
+        fireworkParticles = fireworkParticles.filter(p => p.alpha > 0);
+      }
+
+      // 4. Apertura del Ramo
+      if (animationStage === 'blooming' || animationStage === 'steady') {
+        if (bouquetProgress < 1) {
+          bouquetProgress += 0.02;
+          if (bouquetProgress >= 1) {
+            bouquetProgress = 1;
+            animationStage = 'steady';
+            messageBox.classList.add('visible');
+          }
+        }
+        drawDetailedBouquet(width * 0.5, height * 0.45, 1.1, bouquetProgress);
+      }
+
+      // 5. Partículas interactivas de toque
+      sparkles.forEach(sp => {
+        sp.x += sp.vx;
+        sp.y += sp.vy;
+        sp.alpha -= 0.03;
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(254, 240, 138, ${sp.alpha})`;
+        ctx.shadowColor = '#facc15';
+        ctx.shadowBlur = 6;
+        ctx.fill();
+      });
+      sparkles = sparkles.filter(sp => sp.alpha > 0);
+
+      requestAnimationFrame(loop);
+    }
+    loop();
+
+    // Toques en pantalla generan chispas doradas
+    function addTouchSparkles(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      for (let i = 0; i < 15; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4 + 1;
+        sparkles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: Math.random() * 3 + 1,
+          alpha: 1
+        });
+      }
+    }
+    canvas.addEventListener('click', addTouchSparkles);
+    canvas.addEventListener('touchstart', addTouchSparkles);
+
+    // Controles
+    soundBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isMuted = !isMuted;
+      bgMusic.muted = isMuted;
+      soundBtn.textContent = isMuted ? '🔇' : '🔊';
+    });
+
+    replayBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      bgMusic.currentTime = 0;
+      bgMusic.play().catch(() => {});
+      launchSequence();
+    });
+
+    fullBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+  </script>
+</body>
+</html>
