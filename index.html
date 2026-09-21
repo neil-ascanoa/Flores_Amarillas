@@ -41,7 +41,7 @@
       display: block;
     }
 
-    /* Dedicatoria estética con fondo esmerilado */
+    /* Dedicatoria estética con vidrio esmerilado */
     #message-box {
       position: absolute;
       bottom: 6%;
@@ -56,7 +56,7 @@
       text-align: center;
       opacity: 0;
       transform: translateY(30px) scale(0.96);
-      transition: all 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 2s cubic-bezier(0.16, 1, 0.3, 1);
       pointer-events: none;
       z-index: 20;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 25px rgba(250, 204, 21, 0.15);
@@ -178,7 +178,7 @@
 
   <div id="canvas-container">
     
-    <!-- Audio de fondo -->
+    <!-- Audio de fondo (cancion.mp3 en la misma raíz) -->
     <audio id="bgMusic" loop preload="auto">
       <source src="cancion.mp3" type="audio/mpeg">
     </audio>
@@ -189,7 +189,7 @@
       <button class="icon-btn" id="fullBtn" title="Pantalla completa">⛶</button>
     </div>
 
-    <!-- Pantalla interactiva previa -->
+    <!-- Pantalla interactiva inicial -->
     <div id="start-screen">
       <button class="start-btn" id="realStartBtn">🌻</button>
       <h3>TOCA LA PANTALLA</h3>
@@ -228,14 +228,14 @@
     resize();
 
     let animationStage = 'waiting'; // waiting, launch, blooming, steady
-    let bouquetProgress = 0;
+    let growthProgress = 0; // Progreso paulatino de 0 a 1
     let isMuted = false;
 
     let rockets = [];
     let fireworkParticles = [];
     let sparkles = [];
 
-    // Partículas ambientales de fondo
+    // Partículas de fondo
     const stars = Array.from({ length: 45 }, () => ({
       x: Math.random() * 440,
       y: Math.random() * 900,
@@ -244,7 +244,7 @@
       pulse: Math.random() * 0.03 + 0.01
     }));
 
-    // Cientos de partículas de polvo dorado sobre el ramo (como en la captura 1)
+    // Polvo de estrellas doradas sobre el ramo
     const goldClusterParticles = Array.from({ length: 180 }, () => {
       const angle = Math.random() * Math.PI * 2;
       const radius = Math.pow(Math.random(), 0.6) * 145;
@@ -253,7 +253,6 @@
         relY: Math.sin(angle) * (radius * 0.75) - 60,
         r: Math.random() * 2.8 + 1,
         baseAlpha: Math.random() * 0.8 + 0.25,
-        speed: Math.random() * 0.04 + 0.02,
         offset: Math.random() * Math.PI * 2
       };
     });
@@ -285,15 +284,15 @@
     function launchSequence() {
       animationStage = 'launch';
       messageBox.classList.remove('visible');
-      bouquetProgress = 0;
+      growthProgress = 0;
       rockets = [];
       fireworkParticles = [];
       sparkles = [];
 
-      // Cohetes hacia el centro
-      rockets.push({ x: width * 0.5, y: height, targetY: height * 0.42, speed: 13, trail: [] });
-      rockets.push({ x: width * 0.44, y: height, targetY: height * 0.46, speed: 12.5, trail: [] });
-      rockets.push({ x: width * 0.56, y: height, targetY: height * 0.45, speed: 12, trail: [] });
+      // Cohetes hacia el cielo
+      rockets.push({ x: width * 0.5, y: height, targetY: height * 0.42, speed: 12.5, trail: [] });
+      rockets.push({ x: width * 0.44, y: height, targetY: height * 0.46, speed: 12, trail: [] });
+      rockets.push({ x: width * 0.56, y: height, targetY: height * 0.45, speed: 11.5, trail: [] });
     }
 
     function explodeRockets(x, y) {
@@ -313,27 +312,35 @@
       animationStage = 'blooming';
     }
 
-    /* ==========================================================
-       DIBUJO DEL RAMO EXACTO AL MODELO 1 (CAPAS + SEMILLAS + RESPLANDOR)
-       ========================================================== */
-    function drawModelOneSunflower(x, y, radius, petalLayers, isCenterBig) {
+    // Helper de progresión escalonada
+    function subProgress(val, start, end) {
+      if (val < start) return 0;
+      if (val > end) return 1;
+      return (val - start) / (end - start);
+    }
+
+    /* DIBUJO DE GIRASOL CON APERTURA DE PÉTALOS PROGRESIVA */
+    function drawModelOneSunflower(x, y, radius, bloomAmount, isCenterBig) {
+      if (bloomAmount <= 0) return;
       ctx.save();
       ctx.translate(x, y);
 
-      // Resplandor cálido exterior por flor
-      const aura = ctx.createRadialGradient(0, 0, radius * 0.4, 0, 0, radius * 1.35);
-      aura.addColorStop(0, 'rgba(250, 204, 21, 0.4)');
+      const curRadius = radius * bloomAmount;
+
+      // Aura
+      const aura = ctx.createRadialGradient(0, 0, curRadius * 0.4, 0, 0, curRadius * 1.35);
+      aura.addColorStop(0, `rgba(250, 204, 21, ${0.4 * bloomAmount})`);
       aura.addColorStop(1, 'rgba(250, 204, 21, 0)');
       ctx.fillStyle = aura;
       ctx.beginPath();
-      ctx.arc(0, 0, radius * 1.35, 0, Math.PI * 2);
+      ctx.arc(0, 0, curRadius * 1.35, 0, Math.PI * 2);
       ctx.fill();
 
-      // Múltiples capas de pétalos afilados definidos (idénticos a la foto 1)
-      const layers = petalLayers || [
-        { count: 28, length: radius, widthRatio: 0.16, color1: '#ca8a04', color2: '#fde047', rotOffset: 0 },
-        { count: 28, length: radius * 0.88, widthRatio: 0.15, color1: '#eab308', color2: '#fef08a', rotOffset: 0.11 },
-        { count: 24, length: radius * 0.74, widthRatio: 0.14, color1: '#f59e0b', color2: '#fffbeb', rotOffset: 0.22 }
+      // Capas de pétalos que crecen y se estiran
+      const layers = [
+        { count: 28, length: curRadius, widthRatio: 0.16, color1: '#ca8a04', color2: '#fde047', rotOffset: 0 },
+        { count: 28, length: curRadius * 0.88, widthRatio: 0.15, color1: '#eab308', color2: '#fef08a', rotOffset: 0.11 },
+        { count: 24, length: curRadius * 0.74, widthRatio: 0.14, color1: '#f59e0b', color2: '#fffbeb', rotOffset: 0.22 }
       ];
 
       layers.forEach(layer => {
@@ -358,11 +365,10 @@
           ctx.fillStyle = grad;
           ctx.fill();
 
-          // Nervadura central fina del pétalo
           ctx.beginPath();
           ctx.moveTo(0, l * 0.15);
           ctx.lineTo(0, l * 0.85);
-          ctx.strokeStyle = 'rgba(202, 138, 4, 0.5)';
+          ctx.strokeStyle = 'rgba(202, 138, 4, 0.45)';
           ctx.lineWidth = 1;
           ctx.stroke();
 
@@ -370,10 +376,8 @@
         }
       });
 
-      // Centro oscuro de semillas con corona de textura
-      const centerR = radius * (isCenterBig ? 0.38 : 0.35);
-
-      // Disco base
+      // Centro de semillas
+      const centerR = curRadius * (isCenterBig ? 0.38 : 0.35);
       const centerGrad = ctx.createRadialGradient(0, 0, centerR * 0.1, 0, 0, centerR);
       centerGrad.addColorStop(0, '#1c0d02');
       centerGrad.addColorStop(0.65, '#381604');
@@ -385,11 +389,11 @@
       ctx.fillStyle = centerGrad;
       ctx.fill();
 
-      // Semillas punteadas concéntricas / Fibonacci
+      // Semillas punteadas áureas
       const goldenAngle = 137.5 * (Math.PI / 180);
-      const totalSeeds = isCenterBig ? 130 : 90;
+      const totalSeeds = Math.floor((isCenterBig ? 130 : 90) * bloomAmount);
       for (let n = 1; n < totalSeeds; n++) {
-        const r = (centerR - 2) * Math.sqrt(n / totalSeeds);
+        const r = (centerR - 2) * Math.sqrt(n / (isCenterBig ? 130 : 90));
         const theta = n * goldenAngle;
         const sx = r * Math.cos(theta);
         const sy = r * Math.sin(theta);
@@ -400,158 +404,181 @@
         ctx.fill();
       }
 
-      // Anillo de brillo borde del centro
       ctx.beginPath();
       ctx.arc(0, 0, centerR, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(254, 240, 138, 0.45)';
+      ctx.strokeStyle = `rgba(254, 240, 138, ${0.45 * bloomAmount})`;
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
       ctx.restore();
     }
 
-    function drawModelOneBouquet(cx, cy, scale, progress) {
-      if (progress <= 0) return;
+    /* SECUENCIA ESCALONADA DE ARMADO DEL RAMO */
+    function drawModelOneBouquet(cx, cy, scale, p) {
+      if (p <= 0) return;
       ctx.save();
       ctx.translate(cx, cy);
-      ctx.scale(scale * progress, scale * progress);
+      ctx.scale(scale, scale);
 
-      // Leve respiración orgánica
       const sway = Math.sin(Date.now() * 0.0018) * 0.02;
       ctx.rotate(sway);
 
-      // 1. GRAN AURA DORADA DETRÁS DEL RAMO (como en la foto 1)
-      const bigAura = ctx.createRadialGradient(0, -40, 30, 0, -40, 260);
-      bigAura.addColorStop(0, 'rgba(250, 204, 21, 0.55)');
-      bigAura.addColorStop(0.5, 'rgba(234, 179, 8, 0.25)');
-      bigAura.addColorStop(1, 'rgba(234, 179, 8, 0)');
-      ctx.fillStyle = bigAura;
-      ctx.beginPath();
-      ctx.arc(0, -40, 260, 0, Math.PI * 2);
-      ctx.fill();
+      // Etapas de crecimiento
+      const pStems = subProgress(p, 0.0, 0.30);    // 1. Tallos suben
+      const pLeaves = subProgress(p, 0.15, 0.50);  // 2. Hojas se abren
+      const pBackRoses = subProgress(p, 0.30, 0.65); // 3. Rosas traseras
+      const pSideSuns = subProgress(p, 0.45, 0.80);  // 4. Girasoles laterales
+      const pMainSun = subProgress(p, 0.60, 0.95);   // 5. Girasol central
+      const pRibbon = subProgress(p, 0.75, 1.0);    // 6. Lazo
+      const pAura = subProgress(p, 0.85, 1.0);      // 7. Resplandor y estrellas
 
-      // 2. TALLOS VERDES ESMERALDA DELGADOS Y ELEGANTES
-      ctx.lineWidth = 4.5;
-      ctx.strokeStyle = '#059669';
-      ctx.lineCap = 'round';
-      for (let i = -5; i <= 5; i++) {
+      // 1. AURA DORADA FINAL
+      if (pAura > 0) {
+        const bigAura = ctx.createRadialGradient(0, -40, 30, 0, -40, 260);
+        bigAura.addColorStop(0, `rgba(250, 204, 21, ${0.55 * pAura})`);
+        bigAura.addColorStop(0.5, `rgba(234, 179, 8, ${0.25 * pAura})`);
+        bigAura.addColorStop(1, 'rgba(234, 179, 8, 0)');
+        ctx.fillStyle = bigAura;
         ctx.beginPath();
-        ctx.moveTo(i * 3.5, 40);
-        ctx.quadraticCurveTo(i * 4.5, 120, i * 6.5, 210);
-        ctx.stroke();
+        ctx.arc(0, -40, 260, 0, Math.PI * 2);
+        ctx.fill();
       }
 
-      // 3. HOJAS VERDES BRILLANTES TIPO LANCEOLADAS (Foto 1)
-      function drawCleanLeaf(lx, ly, rot, s) {
+      // 2. TALLOS CRECIENDO DESDE ABAJO
+      if (pStems > 0) {
+        ctx.lineWidth = 4.5;
+        ctx.strokeStyle = '#059669';
+        ctx.lineCap = 'round';
+        for (let i = -5; i <= 5; i++) {
+          const startY = 40 + (1 - pStems) * 170;
+          ctx.beginPath();
+          ctx.moveTo(i * 3.5, startY);
+          ctx.quadraticCurveTo(i * 4.5, 120, i * 6.5, 210);
+          ctx.stroke();
+        }
+      }
+
+      // 3. HOJAS VERDES DESPLEGÁNDOSE
+      if (pLeaves > 0) {
+        function drawCleanLeaf(lx, ly, rot, s) {
+          ctx.save();
+          ctx.translate(lx, ly);
+          ctx.rotate(rot);
+          ctx.scale(s * pLeaves, s * pLeaves);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(28, -18, 55, 0);
+          ctx.quadraticCurveTo(28, 18, 0, 0);
+          const grad = ctx.createLinearGradient(0, -18, 55, 18);
+          grad.addColorStop(0, '#34d399');
+          grad.addColorStop(0.5, '#10b981');
+          grad.addColorStop(1, '#065f46');
+          ctx.fillStyle = grad;
+          ctx.fill();
+          ctx.restore();
+        }
+
+        drawCleanLeaf(-75, -20, -0.65, 1.25);
+        drawCleanLeaf(75, -20, 0.65, 1.25);
+        drawCleanLeaf(-105, -70, -1.05, 1.15);
+        drawCleanLeaf(105, -70, 1.05, 1.15);
+        drawCleanLeaf(0, -120, -1.57, 1.3);
+      }
+
+      // 4. ROSAS AMARILLAS TRASERAS
+      if (pBackRoses > 0) {
+        function drawBackRose(rx, ry, r) {
+          ctx.save();
+          ctx.translate(rx, ry);
+          ctx.scale(pBackRoses, pBackRoses);
+          for (let ring = 5; ring >= 1; ring--) {
+            const rad = (ring / 5) * r;
+            ctx.beginPath();
+            ctx.arc(0, 0, rad, 0, Math.PI * 2);
+            ctx.fillStyle = ring % 2 === 0 ? '#facc15' : '#eab308';
+            ctx.shadowColor = 'rgba(202, 138, 4, 0.4)';
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+          ctx.restore();
+        }
+
+        drawBackRose(0, -95, 48);
+        drawBackRose(-55, -75, 44);
+        drawBackRose(55, -75, 44);
+      }
+
+      // 5. GIRASOLES LATERALES Y SUPERIOR
+      if (pSideSuns > 0) {
+        drawModelOneSunflower(-68, -25, 62, pSideSuns, false);
+        drawModelOneSunflower(68, -25, 62, pSideSuns, false);
+        drawModelOneSunflower(0, -85, 54, pSideSuns, false);
+      }
+
+      // 6. GRAN GIRASOL CENTRAL
+      if (pMainSun > 0) {
+        drawModelOneSunflower(0, 5, 88, pMainSun, true);
+      }
+
+      // 7. LAZO NEGRO DE SATÉN
+      if (pRibbon > 0) {
         ctx.save();
-        ctx.translate(lx, ly);
-        ctx.rotate(rot);
-        ctx.scale(s, s);
+        ctx.translate(0, 85);
+        ctx.scale(pRibbon, pRibbon);
+
+        ctx.lineWidth = 11;
+        ctx.strokeStyle = '#05070d';
         ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(28, -18, 55, 0);
-        ctx.quadraticCurveTo(28, 18, 0, 0);
-        const grad = ctx.createLinearGradient(0, -18, 55, 18);
-        grad.addColorStop(0, '#34d399');
-        grad.addColorStop(0.5, '#10b981');
-        grad.addColorStop(1, '#065f46');
-        ctx.fillStyle = grad;
+        ctx.ellipse(-30, -5, 25, 13, -0.28, 0, Math.PI * 2);
+        ctx.ellipse(30, -5, 25, 13, 0.28, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = '#facc15';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 13, 10, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#05070d';
         ctx.fill();
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = '#fef08a';
+        ctx.stroke();
+
+        ctx.lineWidth = 9;
+        ctx.strokeStyle = '#05070d';
+        ctx.beginPath();
+        ctx.moveTo(-5, 8);
+        ctx.quadraticCurveTo(-22, 60, -30, 98);
+        ctx.moveTo(5, 8);
+        ctx.quadraticCurveTo(22, 60, 30, 98);
+        ctx.stroke();
+
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = '#facc15';
+        ctx.stroke();
+
         ctx.restore();
       }
 
-      drawCleanLeaf(-75, -20, -0.65, 1.25);
-      drawCleanLeaf(75, -20, 0.65, 1.25);
-      drawCleanLeaf(-105, -70, -1.05, 1.15);
-      drawCleanLeaf(105, -70, 1.05, 1.15);
-      drawCleanLeaf(0, -120, -1.57, 1.3);
+      // 8. POLVO DORADO QUE COMIENZA A BRILLAR AL FINAL
+      if (pAura > 0) {
+        const t = Date.now() * 0.002;
+        goldClusterParticles.forEach(pt => {
+          const py = pt.relY + Math.sin(t + pt.offset) * 6;
+          const px = pt.relX + Math.cos(t + pt.offset) * 4;
+          const currentAlpha = pt.baseAlpha * pAura * (0.6 + 0.4 * Math.sin(t * 2 + pt.offset));
 
-      // 4. ROSAS CONCÉNTRICAS AMARILLAS DULCES DE FONDO (Foto 1)
-      function drawBackRose(rx, ry, r) {
-        ctx.save();
-        ctx.translate(rx, ry);
-        for (let ring = 5; ring >= 1; ring--) {
-          const rad = (ring / 5) * r;
           ctx.beginPath();
-          ctx.arc(0, 0, rad, 0, Math.PI * 2);
-          ctx.fillStyle = ring % 2 === 0 ? '#facc15' : '#eab308';
-          ctx.shadowColor = 'rgba(202, 138, 4, 0.4)';
-          ctx.shadowBlur = 6;
+          ctx.arc(px, py, pt.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(254, 240, 138, ${currentAlpha})`;
+          ctx.shadowColor = '#facc15';
+          ctx.shadowBlur = 8;
           ctx.fill();
           ctx.shadowBlur = 0;
-        }
-        ctx.restore();
+        });
       }
-
-      drawBackRose(0, -95, 48);
-      drawBackRose(-55, -75, 44);
-      drawBackRose(55, -75, 44);
-
-      // 5. GIRASOLES SUPERIORES Y LATERALES (Foto 1)
-      drawModelOneSunflower(-68, -25, 62, null, false);
-      drawModelOneSunflower(68, -25, 62, null, false);
-      drawModelOneSunflower(0, -85, 54, null, false);
-
-      // 6. GRAN GIRASOL CENTRAL DOMINANTE (Foto 1)
-      drawModelOneSunflower(0, 5, 88, null, true);
-
-      // 7. LAZO NEGRO DE SATÉN CON FILO DORADO Y CAÍDAS FINAS (Foto 1)
-      ctx.save();
-      ctx.translate(0, 85);
-
-      // Lazadas
-      ctx.lineWidth = 11;
-      ctx.strokeStyle = '#05070d';
-      ctx.beginPath();
-      ctx.ellipse(-30, -5, 25, 13, -0.28, 0, Math.PI * 2);
-      ctx.ellipse(30, -5, 25, 13, 0.28, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Borde dorado en las lazadas
-      ctx.lineWidth = 2.2;
-      ctx.strokeStyle = '#facc15';
-      ctx.stroke();
-
-      // Nudo ovalado
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 13, 10, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#05070d';
-      ctx.fill();
-      ctx.lineWidth = 2.2;
-      ctx.strokeStyle = '#fef08a';
-      ctx.stroke();
-
-      // Caídas largas estilizadas
-      ctx.lineWidth = 9;
-      ctx.strokeStyle = '#05070d';
-      ctx.beginPath();
-      ctx.moveTo(-5, 8);
-      ctx.quadraticCurveTo(-22, 60, -30, 98);
-      ctx.moveTo(5, 8);
-      ctx.quadraticCurveTo(22, 60, 30, 98);
-      ctx.stroke();
-
-      ctx.lineWidth = 1.8;
-      ctx.strokeStyle = '#facc15';
-      ctx.stroke();
-
-      ctx.restore();
-
-      // 8. CIENTOS DE CHISPAS Y POLVO DORADO SOBRE EL RAMO (Efecto Foto 1)
-      const t = Date.now() * 0.002;
-      goldClusterParticles.forEach(p => {
-        const py = p.relY + Math.sin(t + p.offset) * 6;
-        const px = p.relX + Math.cos(t + p.offset) * 4;
-        const currentAlpha = p.baseAlpha * (0.6 + 0.4 * Math.sin(t * 2 + p.offset));
-
-        ctx.beginPath();
-        ctx.arc(px, py, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(254, 240, 138, ${currentAlpha})`;
-        ctx.shadowColor = '#facc15';
-        ctx.shadowBlur = 8;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      });
 
       ctx.restore();
     }
@@ -560,7 +587,7 @@
     function loop() {
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Estrellas de fondo
+      // Estrellas ambiente
       stars.forEach(s => {
         s.alpha += s.pulse;
         if (s.alpha > 0.8 || s.alpha < 0.2) s.pulse *= -1;
@@ -570,7 +597,7 @@
         ctx.fill();
       });
 
-      // 2. Cohetes
+      // Cohetes subiendo
       if (animationStage === 'launch') {
         rockets.forEach(r => {
           r.trail.push({ x: r.x, y: r.y, alpha: 1 });
@@ -600,7 +627,7 @@
         });
       }
 
-      // 3. Chispas de la detonación
+      // Chispas de la detonación
       if (fireworkParticles.length > 0) {
         fireworkParticles.forEach(p => {
           p.x += p.vx;
@@ -621,20 +648,22 @@
         fireworkParticles = fireworkParticles.filter(p => p.alpha > 0);
       }
 
-      // 4. Ramo floreciendo y resplandeciendo
+      // Armado progresivo del ramo (se toma unos ~5 segundos con velocidad suave)
       if (animationStage === 'blooming' || animationStage === 'steady') {
-        if (bouquetProgress < 1) {
-          bouquetProgress += 0.02;
-          if (bouquetProgress >= 1) {
-            bouquetProgress = 1;
+        if (growthProgress < 1) {
+          growthProgress += 0.0035; // Velocidad pausada y estética
+          if (growthProgress >= 1) {
+            growthProgress = 1;
             animationStage = 'steady';
-            messageBox.classList.add('visible');
+            setTimeout(() => {
+              messageBox.classList.add('visible');
+            }, 400);
           }
         }
-        drawModelOneBouquet(width * 0.5, height * 0.44, 1.12, bouquetProgress);
+        drawModelOneBouquet(width * 0.5, height * 0.44, 1.12, growthProgress);
       }
 
-      // 5. Destellos mágicos al tocar
+      // Chispas de toque
       sparkles.forEach(sp => {
         sp.x += sp.vx;
         sp.y += sp.vy;
@@ -684,7 +713,6 @@
       soundBtn.textContent = isMuted ? '🔇' : '🔊';
     });
 
-    // Al reiniciar, la música no se corta
     replayBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (bgMusic.paused) {
